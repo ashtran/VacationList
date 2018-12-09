@@ -12,6 +12,13 @@ import CoreData
 class ViewController: UIViewController {
     var tableData: [ToDoItem] = []
     
+    
+    // obtain context container //
+    let managedObjectContext = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    
+    // share app delegate //
+    let delegate = (UIApplication.shared.delegate as! AppDelegate)
+    
     @IBOutlet weak var tableView: UITableView!
     @IBOutlet weak var AddItemButton: UIBarButtonItem!
     
@@ -19,12 +26,6 @@ class ViewController: UIViewController {
         performSegue(withIdentifier: "ItemSegue", sender: AddItemButton)
     }
     
-    
-    
-    
-    let managedObjectContext = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
-    let delegate = (UIApplication.shared.delegate as! AppDelegate)
-
     override func viewDidLoad() {
         super.viewDidLoad()
         tableData = getItems()
@@ -32,11 +33,11 @@ class ViewController: UIViewController {
         
         // set up long press recognizer and action
         let longPressRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(ViewController.longPress))
-        self.view.addGestureRecognizer(longPressRecognizer)
+        tableView.addGestureRecognizer(longPressRecognizer)
         
     }
 
-    // prepare for segue
+    // Segue //
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if segue.identifier == "ItemSegue"{
             // set navigation controller as segue destination
@@ -59,6 +60,8 @@ class ViewController: UIViewController {
             }
         }
     }
+    
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
@@ -71,7 +74,7 @@ class ViewController: UIViewController {
             let itemRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "ToDoItem")
             
             // sort fetch items by date descending//
-            let sectionsortDescriptors = NSSortDescriptor(key: "date", ascending:false)
+            let sectionsortDescriptors = NSSortDescriptor(key: "date", ascending:true)
             let sortDescriptors = [sectionsortDescriptors]
             itemRequest.sortDescriptors = sortDescriptors
             
@@ -86,16 +89,16 @@ class ViewController: UIViewController {
         }
         return []
     }
+    
     // function to perform when long press
     @objc func longPress(longPressGestureRecognizer: UILongPressGestureRecognizer){
         if longPressGestureRecognizer.state == UIGestureRecognizerState.began {
-            let touchPoint = longPressGestureRecognizer.location(in: self.view)
+            let touchPoint = longPressGestureRecognizer.location(in: tableView)
             if let indexPath = tableView.indexPathForRow(at: touchPoint){
                 performSegue(withIdentifier: "ItemSegue", sender: indexPath)
             }
         }
     }
-    
     
     func cancelButtonPressed(by controller: AddItemViewController) {
         dismiss(animated: true, completion: nil)
@@ -114,12 +117,15 @@ extension ViewController: UITableViewDataSource, UITableViewDelegate {
         
         let d = toDoItem.date!
         let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat  = "MMM dd, yyyy"
+        dateFormatter.dateFormat  = "E, MMM dd, yyyy"
+        let dateFormatter2 = DateFormatter()
+        dateFormatter2.dateFormat  = "h:mm a"
         
         let dateStr = dateFormatter.string(from: d)
+        let dateStr2 = dateFormatter2.string(from: d)
         
         cell.titleLabel.text = toDoItem.title
-        cell.dateLabel.text = dateStr
+        cell.dateLabel.text = dateStr + " \n@ " + dateStr2
         cell.descLabel.text = toDoItem.desc
         
         
@@ -144,23 +150,32 @@ extension ViewController: UITableViewDataSource, UITableViewDelegate {
         }
         
         delegate.saveContext()
+        tableData = getItems()
         tableView.reloadData()
     }
     
     
-    // Remove item for row selected
+    // Remove item for row selected //
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
+        
+        // select item to be deleted //
         let item = tableData[indexPath.row]
+        
+        // delete from data model //
         managedObjectContext.delete(item)
         
+        // try to save database after deletion //
         do{
             try managedObjectContext.save()
+            
         }catch{
             print("\(error)")
         }
-        tableData.remove(at: indexPath.row)
         
+        // get most current table data //
         tableData = getItems()
+        
+        // reload table view data //
         tableView.reloadData()
     }
     
@@ -195,5 +210,4 @@ extension ViewController: AddItemDelegate{
         sender.dismiss(animated: true, completion: nil)
         
     }
-    
 }

@@ -52,6 +52,7 @@ class AddItemViewController: UIViewController {
         descArea.layer.borderWidth = 1
         descArea.layer.borderColor = UIColor.lightGray.cgColor
         descArea.layer.cornerRadius = 5
+        date.setValue(UIColor(red:0.79, green:0.26, blue:0.45, alpha:1.0), forKey: "textColor")
         
         // fill fields with text if editing (data passed through segue) //
         titleLabel.text = title
